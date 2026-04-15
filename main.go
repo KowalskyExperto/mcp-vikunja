@@ -25,5 +25,6 @@ func main() {
 	mcp.AddTool(server, &mcp.Tool{Name: "list_projects", Description: "List all Vikunja Projects"}, handler.ListProjects)
 	mcp.AddTool(server, &mcp.Tool{Name: "list_tasks_by_project", Description: "List all Vikunja Project Tasks"}, handler.ListTasksByProject)
 	mcp.AddTool(server, &mcp.Tool{Name: "search_tasks", Description: "Search tasks by name"}, handler.ListTasksBySearch)
+	mcp.AddTool(server, &mcp.Tool{Name: "create_task", Description: "Create a task for a project"}, handler.CreateTask)
 	server.Run(context.Background(), &mcp.StdioTransport{})
 }

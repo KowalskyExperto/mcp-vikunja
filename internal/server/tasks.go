@@ -41,3 +41,30 @@ func (s *VikunjaServer) ListTasksBySearch(ctx context.Context, req *mcp.CallTool
 	}
 	return nil, ListTasksBySearchOutput{Tasks: tasks}, nil
 }
+
+type CreateTaskInput struct {
+	ProjectID   int    `json:"project_id" jsonschema:"ID Project of Vikunja"`
+	Description string `json:"description,omitempty" jsonschema:"Task description"`
+	DueDate     string `json:"due_date,omitempty" jsonschema:"Task due date in format ISO 8601 YYYY-MM-DDTHH:MM:SSZ"`
+	Priority    int    `json:"priority,omitempty" jsonschema:"The task priority, 1 for low, 5 for critic"`
+	Title       string `json:"title" jsonschema:"The title of the task"`
+}
+type CreateTaskOutput struct {
+	Task api.Task `json:"task"`
+}
+
+func (s *VikunjaServer) CreateTask(ctx context.Context, req *mcp.CallToolRequest, input CreateTaskInput) (*mcp.CallToolResult, CreateTaskOutput, error) {
+	newTask := api.TaskInput{
+		Description: input.Description,
+		DueDate:     input.DueDate,
+		Priority:    input.Priority,
+		Title:       input.Title,
+	}
+	task, err := s.client.CreateTask(input.ProjectID, newTask)
+	if err != nil {
+		result := &mcp.CallToolResult{}
+		result.SetError(err)
+		return result, CreateTaskOutput{}, nil
+	}
+	return nil, CreateTaskOutput{Task: task}, nil
+}

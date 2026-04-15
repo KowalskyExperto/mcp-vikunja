@@ -31,3 +31,10 @@ type Task struct {
 }
 
 type Tasks []Task
+
+type TaskInput struct {
+	Description string `json:"description,omitempty"`
+	DueDate     string `json:"due_date,omitempty"`
+	Priority    int    `json:"priority,omitempty"`
+	Title       string `json:"title"`
+}

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -44,7 +45,7 @@ func (c *Client) GetProjects() (Projects, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Error API Vikunja: Code %d", resp.StatusCode)
+		return nil, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
 	}
 	var projects Projects
 	if err := json.NewDecoder(resp.Body).Decode(&projects); err != nil {
@@ -67,7 +68,7 @@ func (c *Client) GetTasks() (Tasks, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Error API Vikunja: Code %d", resp.StatusCode)
+		return nil, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
 	}
 	var tasks Tasks
 	if err := json.NewDecoder(resp.Body).Decode(&tasks); err != nil {
@@ -77,7 +78,7 @@ func (c *Client) GetTasks() (Tasks, error) {
 }
 
 func (c *Client) GetTasksByProject(projectID int) (Tasks, error) {
-	fullURL := c.BaseURL.JoinPath("projects/", strconv.Itoa(projectID), "/tasks").String()
+	fullURL := c.BaseURL.JoinPath("projects", strconv.Itoa(projectID), "tasks").String()
 	req, err := http.NewRequest("GET", fullURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("Error creating request: %w", err)
@@ -90,7 +91,7 @@ func (c *Client) GetTasksByProject(projectID int) (Tasks, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Error API Vikunja: Code %d", resp.StatusCode)
+		return nil, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
 	}
 	var tasks Tasks
 	if err := json.NewDecoder(resp.Body).Decode(&tasks); err != nil {
@@ -118,11 +119,38 @@ func (c *Client) SearchTasks(search string) (Tasks, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Error API Vikunja: Code %d", resp.StatusCode)
+		return nil, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
 	}
 	var tasks Tasks
 	if err := json.NewDecoder(resp.Body).Decode(&tasks); err != nil {
 		return nil, fmt.Errorf("Error decoding JSON: %v", err)
 	}
 	return tasks, nil
+}
+
+func (c *Client) CreateTask(projectID int, task TaskInput) (Task, error) {
+	jsonData, err := json.Marshal(task)
+	if err != nil {
+		return Task{}, fmt.Errorf("Error serializing task: %w", err)
+	}
+	fullURL := c.BaseURL.JoinPath("projects", strconv.Itoa(projectID), "tasks").String()
+	req, err := http.NewRequest("PUT", fullURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return Task{}, fmt.Errorf("Error creating request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return Task{}, fmt.Errorf("Error executing request: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		return Task{}, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
+	}
+	var createdTask Task
+	if err := json.NewDecoder(resp.Body).Decode(&createdTask); err != nil {
+		return Task{}, fmt.Errorf("error decoding JSON: %v", err)
+	}
+	return createdTask, nil
 }
