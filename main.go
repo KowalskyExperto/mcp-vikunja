@@ -1,0 +1,27 @@
+package main
+
+import (
+	"context"
+	"log"
+	"os"
+
+	"github.com/joho/godotenv"
+	"github.com/kowalskyexperto/mcp-vikunja/internal/api"
+	"github.com/kowalskyexperto/mcp-vikunja/internal/server"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+)
+
+func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env")
+	}
+	vikunjaClient, err := api.NewClient(os.Getenv("API_URL"), os.Getenv("API_TOKEN"))
+	if err != nil {
+		log.Fatalf("Error initializing client: %v", err)
+	}
+	handler := server.NewVikunjaHandler(vikunjaClient)
+	server := mcp.NewServer(&mcp.Implementation{Name: "MCP Vikunja", Version: "v1.0.0"}, nil)
+	mcp.AddTool(server, &mcp.Tool{Name: "list_projects", Description: "List all Vikunja Projects"}, handler.ListProjects)
+	server.Run(context.Background(), &mcp.StdioTransport{})
+}
