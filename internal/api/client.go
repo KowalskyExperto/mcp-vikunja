@@ -98,3 +98,31 @@ func (c *Client) GetTasksByProject(projectID int) (Tasks, error) {
 	}
 	return tasks, nil
 }
+
+func (c *Client) SearchTasks(search string) (Tasks, error) {
+	fullURL := c.BaseURL.JoinPath("tasks").String()
+	req, err := http.NewRequest("GET", fullURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("Error creating request: %w", err)
+	}
+	if search != "" {
+		q := req.URL.Query()
+		q.Set("s", search)
+		req.URL.RawQuery = q.Encode()
+	}
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("Error executing request: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Error API Vikunja: Code %d", resp.StatusCode)
+	}
+	var tasks Tasks
+	if err := json.NewDecoder(resp.Body).Decode(&tasks); err != nil {
+		return nil, fmt.Errorf("Error decoding JSON: %v", err)
+	}
+	return tasks, nil
+}
