@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -50,4 +51,50 @@ func (c *Client) GetProjects() (Projects, error) {
 		return nil, fmt.Errorf("Error decoding JSON: %v", err)
 	}
 	return projects, nil
+}
+
+func (c *Client) GetTasks() (Tasks, error) {
+	fullURL := c.BaseURL.JoinPath("tasks").String()
+	req, err := http.NewRequest("GET", fullURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("Error creating request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("Error executing request: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Error API Vikunja: Code %d", resp.StatusCode)
+	}
+	var tasks Tasks
+	if err := json.NewDecoder(resp.Body).Decode(&tasks); err != nil {
+		return nil, fmt.Errorf("Error decoding JSON: %v", err)
+	}
+	return tasks, nil
+}
+
+func (c *Client) GetTasksByProject(projectID int) (Tasks, error) {
+	fullURL := c.BaseURL.JoinPath("projects/", strconv.Itoa(projectID), "/tasks").String()
+	req, err := http.NewRequest("GET", fullURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("Error creating request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("Error executing request: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Error API Vikunja: Code %d", resp.StatusCode)
+	}
+	var tasks Tasks
+	if err := json.NewDecoder(resp.Body).Decode(&tasks); err != nil {
+		return nil, fmt.Errorf("Error decoding JSON: %v", err)
+	}
+	return tasks, nil
 }

@@ -23,5 +23,6 @@ func main() {
 	handler := server.NewVikunjaHandler(vikunjaClient)
 	server := mcp.NewServer(&mcp.Implementation{Name: "MCP Vikunja", Version: "v1.0.0"}, nil)
 	mcp.AddTool(server, &mcp.Tool{Name: "list_projects", Description: "List all Vikunja Projects"}, handler.ListProjects)
+	mcp.AddTool(server, &mcp.Tool{Name: "list_tasks_by_project", Description: "List all Vikunja Project Tasks"}, handler.ListTasksByProject)
 	server.Run(context.Background(), &mcp.StdioTransport{})
 }
