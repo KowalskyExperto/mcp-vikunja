@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -31,9 +32,8 @@ func NewClient(rawURL, token string) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) GetProjects() (Projects, error) {
-	fullURL := c.BaseURL.JoinPath("projects").String()
-	req, err := http.NewRequest("GET", fullURL, nil)
+func (c *Client) doRequest(method, url string, body io.Reader) (*http.Response, error) {
+	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, fmt.Errorf("Error creating request: %w", err)
 	}
@@ -42,6 +42,15 @@ func (c *Client) GetProjects() (Projects, error) {
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("Error executing request: %w", err)
+	}
+	return resp, nil
+}
+
+func (c *Client) GetProjects() (Projects, error) {
+	fullURL := c.BaseURL.JoinPath("projects").String()
+	resp, err := c.doRequest("GET", fullURL, nil)
+	if err != nil {
+		return nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -56,15 +65,9 @@ func (c *Client) GetProjects() (Projects, error) {
 
 func (c *Client) GetTasks() (Tasks, error) {
 	fullURL := c.BaseURL.JoinPath("tasks").String()
-	req, err := http.NewRequest("GET", fullURL, nil)
+	resp, err := c.doRequest("GET", fullURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating request: %w", err)
-	}
-	req.Header.Set("Authorization", "Bearer "+c.Token)
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("Error executing request: %w", err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -79,15 +82,9 @@ func (c *Client) GetTasks() (Tasks, error) {
 
 func (c *Client) GetTasksByProject(projectID int) (Tasks, error) {
 	fullURL := c.BaseURL.JoinPath("projects", strconv.Itoa(projectID), "tasks").String()
-	req, err := http.NewRequest("GET", fullURL, nil)
+	resp, err := c.doRequest("GET", fullURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating request: %w", err)
-	}
-	req.Header.Set("Authorization", "Bearer "+c.Token)
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("Error executing request: %w", err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -134,15 +131,9 @@ func (c *Client) CreateTask(projectID int, task TaskInput) (Task, error) {
 		return Task{}, fmt.Errorf("Error serializing task: %w", err)
 	}
 	fullURL := c.BaseURL.JoinPath("projects", strconv.Itoa(projectID), "tasks").String()
-	req, err := http.NewRequest("PUT", fullURL, bytes.NewBuffer(jsonData))
+	resp, err := c.doRequest("PUT", fullURL, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return Task{}, fmt.Errorf("Error creating request: %w", err)
-	}
-	req.Header.Set("Authorization", "Bearer "+c.Token)
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return Task{}, fmt.Errorf("Error executing request: %w", err)
+		return Task{}, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusCreated {
@@ -150,22 +141,16 @@ func (c *Client) CreateTask(projectID int, task TaskInput) (Task, error) {
 	}
 	var createdTask Task
 	if err := json.NewDecoder(resp.Body).Decode(&createdTask); err != nil {
-		return Task{}, fmt.Errorf("error decoding JSON: %v", err)
+		return Task{}, fmt.Errorf("Error decoding JSON: %v", err)
 	}
 	return createdTask, nil
 }
 
 func (c *Client) GetTask(taskID int) (TaskDetail, error) {
 	fullURL := c.BaseURL.JoinPath("tasks", strconv.Itoa(taskID)).String()
-	req, err := http.NewRequest("GET", fullURL, nil)
+	resp, err := c.doRequest("GET", fullURL, nil)
 	if err != nil {
-		return TaskDetail{}, fmt.Errorf("Error executing request: %w", err)
-	}
-	req.Header.Set("Authorization", "Bearer "+c.Token)
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return TaskDetail{}, fmt.Errorf("Error executing request: %w", err)
+		return TaskDetail{}, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -179,7 +164,6 @@ func (c *Client) GetTask(taskID int) (TaskDetail, error) {
 		return TaskDetail{}, fmt.Errorf("Error decoding JSON: %v", err)
 	}
 	return task, nil
-
 }
 
 func (c *Client) UpdateTask(taskID int, task TaskUpdate) (Task, error) {
@@ -188,15 +172,9 @@ func (c *Client) UpdateTask(taskID int, task TaskUpdate) (Task, error) {
 		return Task{}, fmt.Errorf("Error serializing task: %w", err)
 	}
 	fullURL := c.BaseURL.JoinPath("tasks", strconv.Itoa(taskID)).String()
-	req, err := http.NewRequest("POST", fullURL, bytes.NewBuffer(jsonData))
+	resp, err := c.doRequest("POST", fullURL, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return Task{}, fmt.Errorf("Error creating request: %w", err)
-	}
-	req.Header.Set("Authorization", "Bearer "+c.Token)
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return Task{}, fmt.Errorf("Error executing request: %w", err)
+		return Task{}, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -204,21 +182,16 @@ func (c *Client) UpdateTask(taskID int, task TaskUpdate) (Task, error) {
 	}
 	var updatedTask Task
 	if err := json.NewDecoder(resp.Body).Decode(&updatedTask); err != nil {
-		return Task{}, fmt.Errorf("error decoding JSON: %v", err)
+		return Task{}, fmt.Errorf("Error decoding JSON: %v", err)
 	}
 	return updatedTask, nil
 }
 
 func (c *Client) DeleteTask(taskID int) error {
 	fullURL := c.BaseURL.JoinPath("tasks", strconv.Itoa(taskID)).String()
-	req, err := http.NewRequest("DELETE", fullURL, nil)
+	resp, err := c.doRequest("DELETE", fullURL, nil)
 	if err != nil {
-		return fmt.Errorf("Error creating request: %w", err)
-	}
-	req.Header.Set("Authorization", "Bearer "+c.Token)
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("Error executing request: %w", err)
+		return err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
