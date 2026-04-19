@@ -79,8 +79,8 @@ type UpdateTaskInput struct {
 	HexColor    string          `json:"hex_color,omitempty" jsonschema:"The task color in hex <= 7 characters"`
 	IsFavorite  *bool           `json:"is_favorite,omitempty" jsonschema:"True if a task is a favorite task"`
 	Labels      []api.TaskLabel `json:"labels,omitempty" jsonschema:"Labels associated with this task, each with a title and optional description"`
-	PercentDone int             `json:"percent_done,omitempty" jsonschema:"Determines how far a task is left from being done Max 100"`
-	Priority    int             `json:"priority,omitempty" jsonschema:"The task priority, 1 for low, 5 for critic"`
+	PercentDone *float64        `json:"percent_done,omitempty" jsonschema:"How far the task is from being done, from 0.0 (0%) to 1.0 (100%)"`
+	Priority    *int            `json:"priority,omitempty" jsonschema:"The task priority, 0 for none, 1 for low, 5 for critic"`
 	ProjectID   int             `json:"project_id,omitempty" jsonschema:"The project this task belongs to"`
 	StartDate   string          `json:"start_date,omitempty" jsonschema:"When this task starts"`
 	Title       string          `json:"title,omitempty" jsonschema:"The title of the task"`
@@ -98,21 +98,23 @@ func (s *VikunjaServer) UpdateTask(ctx context.Context, req *mcp.CallToolRequest
 		return result, UpdateTaskOutput{}, nil
 	}
 
+	currentPercentDone := current.PercentDone
+	currentPriority := current.Priority
+	done := current.Done
+	isFavorite := current.IsFavorite
 	updateTask := api.TaskUpdate{
 		Description: current.Description,
+		Done:        &done,
 		DueDate:     current.DueDate,
 		EndDate:     current.EndDate,
 		HexColor:    current.HexColor,
-		PercentDone: current.PercentDone,
-		Priority:    current.Priority,
+		IsFavorite:  &isFavorite,
+		PercentDone: &currentPercentDone,
+		Priority:    &currentPriority,
 		ProjectID:   current.ProjectID,
 		StartDate:   current.StartDate,
 		Title:       current.Title,
 	}
-	done := current.Done
-	updateTask.Done = &done
-	isFavorite := current.IsFavorite
-	updateTask.IsFavorite = &isFavorite
 
 	if input.Title != "" {
 		updateTask.Title = input.Title
@@ -135,10 +137,10 @@ func (s *VikunjaServer) UpdateTask(ctx context.Context, req *mcp.CallToolRequest
 	if input.IsFavorite != nil {
 		updateTask.IsFavorite = input.IsFavorite
 	}
-	if input.PercentDone != 0 {
+	if input.PercentDone != nil {
 		updateTask.PercentDone = input.PercentDone
 	}
-	if input.Priority != 0 {
+	if input.Priority != nil {
 		updateTask.Priority = input.Priority
 	}
 	if input.ProjectID != 0 {

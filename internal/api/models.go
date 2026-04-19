@@ -34,7 +34,7 @@ type ProjectInput struct {
 	Description     string `json:"description,omitempty"`
 	HexColor        string `json:"hex_color,omitempty"`
 	IsFavorite      bool   `json:"is_favorite,omitempty"`
-	ParentProjectID int    `json:"parent_project_id,omitempty"`
+	ParentProjectID *int   `json:"parent_project_id,omitempty"`
 	Title           string `json:"title"`
 }
 
@@ -159,7 +159,7 @@ type TaskDetail struct {
 		Title       string `json:"title"`
 		Updated     string `json:"updated"`
 	} `json:"labels"`
-	PercentDone int `json:"percent_done"`
+	PercentDone float64 `json:"percent_done"`
 	Position    int `json:"position"`
 	Priority    int `json:"priority"`
 	ProjectID   int `json:"project_id"`
@@ -281,8 +281,8 @@ type TaskUpdate struct {
 	HexColor    string      `json:"hex_color,omitempty"`
 	IsFavorite  *bool       `json:"is_favorite,omitempty"`
 	Labels      []TaskLabel `json:"labels,omitempty"`
-	PercentDone int         `json:"percent_done,omitempty"`
-	Priority    int         `json:"priority,omitempty"`
+	PercentDone *float64    `json:"percent_done,omitempty"`
+	Priority    *int        `json:"priority,omitempty"`
 	ProjectID   int         `json:"project_id,omitempty"`
 	StartDate   string      `json:"start_date,omitempty"`
 	Title       string      `json:"title,omitempty"`

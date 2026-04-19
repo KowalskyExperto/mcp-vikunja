@@ -46,7 +46,7 @@ type CreateProjectInput struct {
 	Description     string `json:"description,omitempty" jsonschema:"Project description"`
 	HexColor        string `json:"hex_color,omitempty" jsonschema:"Project color in hex format, e.g. #ff0000"`
 	IsFavorite      bool   `json:"is_favorite,omitempty" jsonschema:"Mark this project as a favorite"`
-	ParentProjectID int    `json:"parent_project_id,omitempty" jsonschema:"ID of the parent project to nest this project under"`
+	ParentProjectID *int   `json:"parent_project_id,omitempty" jsonschema:"ID of the parent project to nest this project under"`
 }
 
 type CreateProjectOutput struct {
@@ -76,7 +76,7 @@ type UpdateProjectInput struct {
 	Description     string `json:"description,omitempty" jsonschema:"New description for the project"`
 	HexColor        string `json:"hex_color,omitempty" jsonschema:"Project color in hex format, e.g. #ff0000"`
 	IsFavorite      bool   `json:"is_favorite,omitempty" jsonschema:"Mark this project as a favorite"`
-	ParentProjectID int    `json:"parent_project_id,omitempty" jsonschema:"Move this project under a different parent project"`
+	ParentProjectID *int   `json:"parent_project_id,omitempty" jsonschema:"Set the parent project ID, or 0 to remove the parent"`
 }
 
 type UpdateProjectOutput struct {
@@ -91,11 +91,12 @@ func (s *VikunjaServer) UpdateProject(ctx context.Context, req *mcp.CallToolRequ
 		return result, UpdateProjectOutput{}, nil
 	}
 
+	currentParent := current.ParentProjectID
 	updated := api.ProjectInput{
 		Title:           current.Title,
 		Description:     current.Description,
 		IsFavorite:      current.IsFavorite,
-		ParentProjectID: current.ParentProjectID,
+		ParentProjectID: &currentParent,
 	}
 	if input.Title != "" {
 		updated.Title = input.Title
@@ -109,7 +110,7 @@ func (s *VikunjaServer) UpdateProject(ctx context.Context, req *mcp.CallToolRequ
 	if input.IsFavorite {
 		updated.IsFavorite = input.IsFavorite
 	}
-	if input.ParentProjectID != 0 {
+	if input.ParentProjectID != nil {
 		updated.ParentProjectID = input.ParentProjectID
 	}
 
