@@ -268,6 +268,72 @@ func (c *Client) UpdateTask(taskID int, task TaskUpdate) (Task, error) {
 	return updatedTask, nil
 }
 
+func (c *Client) ListProjectViews(projectID int) (ProjectViews, error) {
+	fullURL := c.BaseURL.JoinPath("projects", strconv.Itoa(projectID), "views").String()
+	resp, err := c.doRequest("GET", fullURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, fmt.Errorf("project with ID %d not found", projectID)
+		}
+		return nil, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
+	}
+	var views ProjectViews
+	if err := json.NewDecoder(resp.Body).Decode(&views); err != nil {
+		return nil, fmt.Errorf("Error decoding JSON: %v", err)
+	}
+	return views, nil
+}
+
+func (c *Client) ListKanbanBuckets(projectID, viewID int) (Buckets, error) {
+	fullURL := c.BaseURL.JoinPath("projects", strconv.Itoa(projectID), "views", strconv.Itoa(viewID), "buckets").String()
+	resp, err := c.doRequest("GET", fullURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, fmt.Errorf("view with ID %d not found", viewID)
+		}
+		return nil, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
+	}
+	var buckets Buckets
+	if err := json.NewDecoder(resp.Body).Decode(&buckets); err != nil {
+		return nil, fmt.Errorf("Error decoding JSON: %v", err)
+	}
+	return buckets, nil
+}
+
+func (c *Client) MoveTaskToBucket(projectID, viewID, bucketID, taskID int) error {
+	body := map[string]int{"task_id": taskID}
+	jsonData, err := json.Marshal(body)
+	if err != nil {
+		return fmt.Errorf("Error serializing request: %w", err)
+	}
+	fullURL := c.BaseURL.JoinPath(
+		"projects", strconv.Itoa(projectID),
+		"views", strconv.Itoa(viewID),
+		"buckets", strconv.Itoa(bucketID),
+		"tasks",
+	).String()
+	resp, err := c.doRequest("POST", fullURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusNotFound {
+			return fmt.Errorf("task with ID %d not found", taskID)
+		}
+		return fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
+	}
+	return nil
+}
+
 func (c *Client) ListLabels() (Labels, error) {
 	fullURL := c.BaseURL.JoinPath("labels").String()
 	resp, err := c.doRequest("GET", fullURL, nil)

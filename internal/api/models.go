@@ -205,6 +205,29 @@ type TaskDetail struct {
 	Updated string `json:"updated"`
 }
 
+type ProjectView struct {
+	ID        int    `json:"id"`
+	Title     string `json:"title"`
+	ViewKind  string `json:"view_kind"`
+	ProjectID int    `json:"project_id"`
+	Created   string `json:"created"`
+	Updated   string `json:"updated"`
+}
+
+type ProjectViews []ProjectView
+
+type Bucket struct {
+	ID            int    `json:"id"`
+	Title         string `json:"title"`
+	Count         int    `json:"count"`
+	Limit         int    `json:"limit"`
+	ProjectViewID int    `json:"project_view_id"`
+	Created       string `json:"created"`
+	Updated       string `json:"updated"`
+}
+
+type Buckets []Bucket
+
 type Label struct {
 	ID          int    `json:"id"`
 	Title       string `json:"title"`

@@ -36,9 +36,9 @@ Tools already implemented are marked as done. The rest are pending.
 
 ## Kanban
 
-- [ ] `list_project_views` — `GET /projects/{id}/views` — List views of a project (list, kanban, gantt, etc.)
-- [ ] `list_kanban_buckets` — `GET /projects/{id}/views/{view}/buckets` — List kanban columns (buckets)
-- [ ] `move_task_to_bucket` — `POST /projects/{project}/views/{view}/buckets/{bucket}/tasks` — Move a task to a kanban column
+- [x] `list_project_views` — `GET /projects/{id}/views` — List views of a project (list, kanban, gantt, etc.)
+- [x] `list_kanban_buckets` — `GET /projects/{id}/views/{view}/buckets` — List kanban columns (buckets)
+- [x] `move_task_to_bucket` — `POST /projects/{project}/views/{view}/buckets/{bucket}/tasks` — Move a task to a kanban column
 
 ## Users and Notifications
 
