@@ -31,7 +31,7 @@ npx @modelcontextprotocol/inspector go run .
 |------|-------------|
 | `list_projects` | List all projects |
 | `create_project` | Create a new project |
-| `update_project` | Update a project by ID |
+| `update_project` | Update a project by ID. Use `clear_fields` to clear optional fields (e.g. `["description"]`) |
 | `delete_project` | Delete a project by ID |
 | `list_tasks_by_project` | List all tasks in a project |
 
@@ -42,7 +42,7 @@ npx @modelcontextprotocol/inspector go run .
 | `search_tasks` | Search tasks by name |
 | `create_task` | Create a task in a project |
 | `get_task` | Get full task details by ID |
-| `update_task` | Update a task by ID |
+| `update_task` | Update a task by ID. Use `clear_fields` to clear optional fields (e.g. `["description", "due_date"]`) |
 | `delete_task` | Delete a task by ID |
 
 ### Comments
