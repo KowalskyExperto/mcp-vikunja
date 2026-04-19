@@ -208,3 +208,24 @@ func (c *Client) UpdateTask(taskID int, task TaskUpdate) (Task, error) {
 	}
 	return updatedTask, nil
 }
+
+func (c *Client) DeleteTask(taskID int) error {
+	fullURL := c.BaseURL.JoinPath("tasks", strconv.Itoa(taskID)).String()
+	req, err := http.NewRequest("DELETE", fullURL, nil)
+	if err != nil {
+		return fmt.Errorf("Error creating request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("Error executing request: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusNotFound {
+			return fmt.Errorf("task with ID %d not found", taskID)
+		}
+		return fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
+	}
+	return nil
+}

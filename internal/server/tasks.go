@@ -184,3 +184,21 @@ func (s *VikunjaServer) UpdateTask(ctx context.Context, req *mcp.CallToolRequest
 	}
 	return nil, UpdateTaskOutput{Task: task}, nil
 }
+
+type DeleteTaskInput struct {
+	TaskID int `json:"task_id" jsonschema:"ID of the task to delete"`
+}
+
+type DeleteTaskOutput struct {
+	Message string `json:"message"`
+}
+
+func (s *VikunjaServer) DeleteTask(ctx context.Context, req *mcp.CallToolRequest, input DeleteTaskInput) (*mcp.CallToolResult, DeleteTaskOutput, error) {
+	err := s.client.DeleteTask(input.TaskID)
+	if err != nil {
+		result := &mcp.CallToolResult{}
+		result.SetError(err)
+		return result, DeleteTaskOutput{}, nil
+	}
+	return nil, DeleteTaskOutput{Message: "Task deleted successfully"}, nil
+}
