@@ -22,9 +22,9 @@ Tools already implemented are marked as done. The rest are pending.
 
 ## Task Comments
 
-- [ ] `list_task_comments` — `GET /tasks/{id}/comments` — List all comments on a task
-- [ ] `create_task_comment` — `PUT /tasks/{id}/comments` — Add a comment to a task
-- [ ] `delete_task_comment` — `DELETE /tasks/{id}/comments/{commentID}` — Remove a comment
+- [x] `list_task_comments` — `GET /tasks/{id}/comments` — List all comments on a task
+- [x] `create_task_comment` — `PUT /tasks/{id}/comments` — Add a comment to a task
+- [x] `delete_task_comment` — `DELETE /tasks/{id}/comments/{commentID}` — Remove a comment
 
 ## Labels
 
