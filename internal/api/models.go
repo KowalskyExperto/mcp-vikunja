@@ -263,6 +263,11 @@ type TaskCommentInput struct {
 	Comment string `json:"comment"`
 }
 
+type TaskRelationInput struct {
+	OtherTaskID  int    `json:"other_task_id"`
+	RelationKind string `json:"relation_kind"`
+}
+
 type TaskLabel struct {
 	Description string `json:"description,omitempty"`
 	Title       string `json:"title,omitempty"`

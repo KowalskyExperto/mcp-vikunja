@@ -43,5 +43,7 @@ func main() {
 	mcp.AddTool(server, &mcp.Tool{Name: "delete_task_comment", Description: "Delete a comment from a task"}, handler.DeleteTaskComment)
 	mcp.AddTool(server, &mcp.Tool{Name: "update_task", Description: "Update a task by ID"}, handler.UpdateTask)
 	mcp.AddTool(server, &mcp.Tool{Name: "delete_task", Description: "Delete a task by ID"}, handler.DeleteTask)
+	mcp.AddTool(server, &mcp.Tool{Name: "create_task_relation", Description: "Create a relation between two tasks (subtask, blocking, related, etc.)"}, handler.CreateTaskRelation)
+	mcp.AddTool(server, &mcp.Tool{Name: "delete_task_relation", Description: "Remove a relation between two tasks"}, handler.DeleteTaskRelation)
 	server.Run(context.Background(), &mcp.StdioTransport{})
 }

@@ -483,6 +483,44 @@ func (c *Client) DeleteTaskComment(taskID, commentID int) error {
 	return nil
 }
 
+func (c *Client) CreateTaskRelation(taskID int, input TaskRelationInput) error {
+	jsonData, err := json.Marshal(input)
+	if err != nil {
+		return fmt.Errorf("Error serializing relation: %w", err)
+	}
+	fullURL := c.BaseURL.JoinPath("tasks", strconv.Itoa(taskID), "relations").String()
+	resp, err := c.doRequest("PUT", fullURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		return fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
+	}
+	return nil
+}
+
+func (c *Client) DeleteTaskRelation(taskID int, relationKind string, otherTaskID int) error {
+	fullURL := c.BaseURL.JoinPath("tasks", strconv.Itoa(taskID), "relations", relationKind, strconv.Itoa(otherTaskID)).String()
+	body := TaskRelationInput{OtherTaskID: otherTaskID, RelationKind: relationKind}
+	jsonData, err := json.Marshal(body)
+	if err != nil {
+		return fmt.Errorf("Error serializing relation: %w", err)
+	}
+	resp, err := c.doRequest("DELETE", fullURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusNotFound {
+			return fmt.Errorf("relation not found between tasks %d and %d", taskID, otherTaskID)
+		}
+		return fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
+	}
+	return nil
+}
+
 func (c *Client) DeleteTask(taskID int) error {
 	fullURL := c.BaseURL.JoinPath("tasks", strconv.Itoa(taskID)).String()
 	resp, err := c.doRequest("DELETE", fullURL, nil)
