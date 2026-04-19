@@ -46,6 +46,87 @@ func (c *Client) doRequest(method, url string, body io.Reader) (*http.Response, 
 	return resp, nil
 }
 
+func (c *Client) CreateProject(project ProjectInput) (Project, error) {
+	jsonData, err := json.Marshal(project)
+	if err != nil {
+		return Project{}, fmt.Errorf("Error serializing project: %w", err)
+	}
+	fullURL := c.BaseURL.JoinPath("projects").String()
+	resp, err := c.doRequest("PUT", fullURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return Project{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		return Project{}, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
+	}
+	var created Project
+	if err := json.NewDecoder(resp.Body).Decode(&created); err != nil {
+		return Project{}, fmt.Errorf("Error decoding JSON: %v", err)
+	}
+	return created, nil
+}
+
+func (c *Client) UpdateProject(projectID int, project ProjectInput) (Project, error) {
+	jsonData, err := json.Marshal(project)
+	if err != nil {
+		return Project{}, fmt.Errorf("Error serializing project: %w", err)
+	}
+	fullURL := c.BaseURL.JoinPath("projects", strconv.Itoa(projectID)).String()
+	resp, err := c.doRequest("POST", fullURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return Project{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusNotFound {
+			return Project{}, fmt.Errorf("project with ID %d not found", projectID)
+		}
+		return Project{}, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
+	}
+	var updated Project
+	if err := json.NewDecoder(resp.Body).Decode(&updated); err != nil {
+		return Project{}, fmt.Errorf("Error decoding JSON: %v", err)
+	}
+	return updated, nil
+}
+
+func (c *Client) DeleteProject(projectID int) error {
+	fullURL := c.BaseURL.JoinPath("projects", strconv.Itoa(projectID)).String()
+	resp, err := c.doRequest("DELETE", fullURL, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusNotFound {
+			return fmt.Errorf("project with ID %d not found", projectID)
+		}
+		return fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
+	}
+	return nil
+}
+
+func (c *Client) GetProject(projectID int) (Project, error) {
+	fullURL := c.BaseURL.JoinPath("projects", strconv.Itoa(projectID)).String()
+	resp, err := c.doRequest("GET", fullURL, nil)
+	if err != nil {
+		return Project{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusNotFound {
+			return Project{}, fmt.Errorf("project with ID %d not found", projectID)
+		}
+		return Project{}, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
+	}
+	var project Project
+	if err := json.NewDecoder(resp.Body).Decode(&project); err != nil {
+		return Project{}, fmt.Errorf("Error decoding JSON: %v", err)
+	}
+	return project, nil
+}
+
 func (c *Client) GetProjects() (Projects, error) {
 	fullURL := c.BaseURL.JoinPath("projects").String()
 	resp, err := c.doRequest("GET", fullURL, nil)

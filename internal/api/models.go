@@ -30,6 +30,14 @@ type Task struct {
 	Updated      string `json:"updated"`
 }
 
+type ProjectInput struct {
+	Description     string `json:"description,omitempty"`
+	HexColor        string `json:"hex_color,omitempty"`
+	IsFavorite      bool   `json:"is_favorite,omitempty"`
+	ParentProjectID int    `json:"parent_project_id,omitempty"`
+	Title           string `json:"title"`
+}
+
 type Tasks []Task
 
 type TaskInput struct {
