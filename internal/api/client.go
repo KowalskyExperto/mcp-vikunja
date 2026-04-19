@@ -268,6 +268,63 @@ func (c *Client) UpdateTask(taskID int, task TaskUpdate) (Task, error) {
 	return updatedTask, nil
 }
 
+func (c *Client) ListTaskComments(taskID int) (TaskComments, error) {
+	fullURL := c.BaseURL.JoinPath("tasks", strconv.Itoa(taskID), "comments").String()
+	resp, err := c.doRequest("GET", fullURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, fmt.Errorf("task with ID %d not found", taskID)
+		}
+		return nil, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
+	}
+	var comments TaskComments
+	if err := json.NewDecoder(resp.Body).Decode(&comments); err != nil {
+		return nil, fmt.Errorf("Error decoding JSON: %v", err)
+	}
+	return comments, nil
+}
+
+func (c *Client) CreateTaskComment(taskID int, input TaskCommentInput) (TaskComment, error) {
+	jsonData, err := json.Marshal(input)
+	if err != nil {
+		return TaskComment{}, fmt.Errorf("Error serializing comment: %w", err)
+	}
+	fullURL := c.BaseURL.JoinPath("tasks", strconv.Itoa(taskID), "comments").String()
+	resp, err := c.doRequest("PUT", fullURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return TaskComment{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		return TaskComment{}, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
+	}
+	var comment TaskComment
+	if err := json.NewDecoder(resp.Body).Decode(&comment); err != nil {
+		return TaskComment{}, fmt.Errorf("Error decoding JSON: %v", err)
+	}
+	return comment, nil
+}
+
+func (c *Client) DeleteTaskComment(taskID, commentID int) error {
+	fullURL := c.BaseURL.JoinPath("tasks", strconv.Itoa(taskID), "comments", strconv.Itoa(commentID)).String()
+	resp, err := c.doRequest("DELETE", fullURL, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusNotFound {
+			return fmt.Errorf("comment with ID %d not found", commentID)
+		}
+		return fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
+	}
+	return nil
+}
+
 func (c *Client) DeleteTask(taskID int) error {
 	fullURL := c.BaseURL.JoinPath("tasks", strconv.Itoa(taskID)).String()
 	resp, err := c.doRequest("DELETE", fullURL, nil)

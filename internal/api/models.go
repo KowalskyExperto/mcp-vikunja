@@ -205,6 +205,24 @@ type TaskDetail struct {
 	Updated string `json:"updated"`
 }
 
+type TaskComment struct {
+	ID      int    `json:"id"`
+	Comment string `json:"comment"`
+	Author  struct {
+		ID       int    `json:"id"`
+		Username string `json:"username"`
+		Name     string `json:"name"`
+	} `json:"author"`
+	Created string `json:"created"`
+	Updated string `json:"updated"`
+}
+
+type TaskComments []TaskComment
+
+type TaskCommentInput struct {
+	Comment string `json:"comment"`
+}
+
 type TaskLabel struct {
 	Description string `json:"description,omitempty"`
 	Title       string `json:"title,omitempty"`
