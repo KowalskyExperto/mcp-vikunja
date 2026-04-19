@@ -71,12 +71,13 @@ func (s *VikunjaServer) CreateProject(ctx context.Context, req *mcp.CallToolRequ
 }
 
 type UpdateProjectInput struct {
-	ProjectID       int    `json:"project_id" jsonschema:"ID of the project to update"`
-	Title           string `json:"title,omitempty" jsonschema:"New title for the project"`
-	Description     string `json:"description,omitempty" jsonschema:"New description for the project"`
-	HexColor        string `json:"hex_color,omitempty" jsonschema:"Project color in hex format, e.g. #ff0000"`
-	IsFavorite      bool   `json:"is_favorite,omitempty" jsonschema:"Mark this project as a favorite"`
-	ParentProjectID *int   `json:"parent_project_id,omitempty" jsonschema:"Set the parent project ID, or 0 to remove the parent"`
+	ProjectID       int      `json:"project_id" jsonschema:"ID of the project to update"`
+	ClearFields     []string `json:"clear_fields,omitempty" jsonschema:"List of field names to clear. Supported: description"`
+	Title           string   `json:"title,omitempty" jsonschema:"New title for the project"`
+	Description     string   `json:"description,omitempty" jsonschema:"New description for the project"`
+	HexColor        string   `json:"hex_color,omitempty" jsonschema:"Project color in hex format, e.g. #ff0000"`
+	IsFavorite      bool     `json:"is_favorite,omitempty" jsonschema:"Mark this project as a favorite"`
+	ParentProjectID *int     `json:"parent_project_id,omitempty" jsonschema:"Set the parent project ID, or 0 to remove the parent"`
 }
 
 type UpdateProjectOutput struct {
@@ -98,10 +99,18 @@ func (s *VikunjaServer) UpdateProject(ctx context.Context, req *mcp.CallToolRequ
 		IsFavorite:      current.IsFavorite,
 		ParentProjectID: &currentParent,
 	}
+
+	clearSet := make(map[string]bool)
+	for _, f := range input.ClearFields {
+		clearSet[f] = true
+	}
+
 	if input.Title != "" {
 		updated.Title = input.Title
 	}
-	if input.Description != "" {
+	if clearSet["description"] {
+		updated.Description = ""
+	} else if input.Description != "" {
 		updated.Description = input.Description
 	}
 	if input.HexColor != "" {

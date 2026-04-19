@@ -72,6 +72,7 @@ func (s *VikunjaServer) GetTask(ctx context.Context, req *mcp.CallToolRequest, i
 type UpdateTaskInput struct {
 	TaskID int `json:"id" jsonschema:"ID Task to update"`
 
+	ClearFields []string        `json:"clear_fields,omitempty" jsonschema:"List of field names to clear. Supported: description, due_date, start_date, end_date, hex_color"`
 	Description string          `json:"description,omitempty" jsonschema:"Task description"`
 	Done        *bool           `json:"done,omitempty" jsonschema:"Whether a task is done or not"`
 	DueDate     string          `json:"due_date,omitempty" jsonschema:"When this task is due in format ISO 8601 YYYY-MM-DDTHH:MM:SSZ"`
@@ -116,22 +117,35 @@ func (s *VikunjaServer) UpdateTask(ctx context.Context, req *mcp.CallToolRequest
 		Title:       current.Title,
 	}
 
+	clearSet := make(map[string]bool)
+	for _, f := range input.ClearFields {
+		clearSet[f] = true
+	}
+
+	if clearSet["description"] {
+		updateTask.Description = ""
+	} else if input.Description != "" {
+		updateTask.Description = input.Description
+	}
 	if input.Title != "" {
 		updateTask.Title = input.Title
-	}
-	if input.Description != "" {
-		updateTask.Description = input.Description
 	}
 	if input.Done != nil {
 		updateTask.Done = input.Done
 	}
-	if input.DueDate != "" {
+	if clearSet["due_date"] {
+		updateTask.DueDate = ""
+	} else if input.DueDate != "" {
 		updateTask.DueDate = input.DueDate
 	}
-	if input.EndDate != "" {
+	if clearSet["end_date"] {
+		updateTask.EndDate = ""
+	} else if input.EndDate != "" {
 		updateTask.EndDate = input.EndDate
 	}
-	if input.HexColor != "" {
+	if clearSet["hex_color"] {
+		updateTask.HexColor = ""
+	} else if input.HexColor != "" {
 		updateTask.HexColor = input.HexColor
 	}
 	if input.IsFavorite != nil {
@@ -146,7 +160,9 @@ func (s *VikunjaServer) UpdateTask(ctx context.Context, req *mcp.CallToolRequest
 	if input.ProjectID != 0 {
 		updateTask.ProjectID = input.ProjectID
 	}
-	if input.StartDate != "" {
+	if clearSet["start_date"] {
+		updateTask.StartDate = ""
+	} else if input.StartDate != "" {
 		updateTask.StartDate = input.StartDate
 	}
 	if len(input.Labels) > 0 {
