@@ -12,10 +12,7 @@ import (
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env")
-	}
+	godotenv.Load()
 	vikunjaClient, err := api.NewClient(os.Getenv("API_URL"), os.Getenv("API_TOKEN"))
 	if err != nil {
 		log.Fatalf("Error initializing client: %v", err)
