@@ -154,3 +154,57 @@ func (c *Client) CreateTask(projectID int, task TaskInput) (Task, error) {
 	}
 	return createdTask, nil
 }
+
+func (c *Client) GetTask(taskID int) (TaskDetail, error) {
+	fullURL := c.BaseURL.JoinPath("tasks", strconv.Itoa(taskID)).String()
+	req, err := http.NewRequest("GET", fullURL, nil)
+	if err != nil {
+		return TaskDetail{}, fmt.Errorf("Error executing request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return TaskDetail{}, fmt.Errorf("Error executing request: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusNotFound {
+			return TaskDetail{}, fmt.Errorf("task with ID %d not found", taskID)
+		}
+		return TaskDetail{}, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
+	}
+	var task TaskDetail
+	if err := json.NewDecoder(resp.Body).Decode(&task); err != nil {
+		return TaskDetail{}, fmt.Errorf("Error decoding JSON: %v", err)
+	}
+	return task, nil
+
+}
+
+func (c *Client) UpdateTask(taskID int, task TaskUpdate) (Task, error) {
+	jsonData, err := json.Marshal(task)
+	if err != nil {
+		return Task{}, fmt.Errorf("Error serializing task: %w", err)
+	}
+	fullURL := c.BaseURL.JoinPath("tasks", strconv.Itoa(taskID)).String()
+	req, err := http.NewRequest("POST", fullURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return Task{}, fmt.Errorf("Error creating request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return Task{}, fmt.Errorf("Error executing request: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return Task{}, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
+	}
+	var updatedTask Task
+	if err := json.NewDecoder(resp.Body).Decode(&updatedTask); err != nil {
+		return Task{}, fmt.Errorf("error decoding JSON: %v", err)
+	}
+	return updatedTask, nil
+}

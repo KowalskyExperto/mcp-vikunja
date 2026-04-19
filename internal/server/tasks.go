@@ -68,3 +68,119 @@ func (s *VikunjaServer) CreateTask(ctx context.Context, req *mcp.CallToolRequest
 	}
 	return nil, CreateTaskOutput{Task: task}, nil
 }
+
+type GetTaskInput struct {
+	TaskID int `json:"task_id" jsonschema:"ID Task to get"`
+}
+
+type GetTaskOutput struct {
+	Task api.TaskDetail `json:"task"`
+}
+
+func (s *VikunjaServer) GetTask(ctx context.Context, req *mcp.CallToolRequest, input GetTaskInput) (*mcp.CallToolResult, GetTaskOutput, error) {
+	task, err := s.client.GetTask(input.TaskID)
+	if err != nil {
+		result := &mcp.CallToolResult{}
+		result.SetError(err)
+		return result, GetTaskOutput{}, nil
+	}
+	return nil, GetTaskOutput{Task: task}, nil
+}
+
+type UpdateTaskInput struct {
+	TaskID int `json:"id" jsonschema:"ID Task to update"`
+
+	Description string          `json:"description,omitempty" jsonschema:"Task description"`
+	Done        *bool           `json:"done,omitempty" jsonschema:"Whether a task is done or not"`
+	DueDate     string          `json:"due_date,omitempty" jsonschema:"When this task is due in format ISO 8601 YYYY-MM-DDTHH:MM:SSZ"`
+	EndDate     string          `json:"end_date,omitempty" jsonschema:"When this task ends"`
+	HexColor    string          `json:"hex_color,omitempty" jsonschema:"The task color in hex <= 7 characters"`
+	IsFavorite  *bool           `json:"is_favorite,omitempty" jsonschema:"True if a task is a favorite task"`
+	Labels      []api.TaskLabel `json:"labels,omitempty" jsonschema:"Labels associated with this task, each with a title and optional description"`
+	PercentDone int             `json:"percent_done,omitempty" jsonschema:"Determines how far a task is left from being done Max 100"`
+	Priority    int             `json:"priority,omitempty" jsonschema:"The task priority, 1 for low, 5 for critic"`
+	ProjectID   int             `json:"project_id,omitempty" jsonschema:"The project this task belongs to"`
+	StartDate   string          `json:"start_date,omitempty" jsonschema:"When this task starts"`
+	Title       string          `json:"title,omitempty" jsonschema:"The title of the task"`
+}
+
+type UpdateTaskOutput struct {
+	Task api.Task `json:"task"`
+}
+
+func (s *VikunjaServer) UpdateTask(ctx context.Context, req *mcp.CallToolRequest, input UpdateTaskInput) (*mcp.CallToolResult, UpdateTaskOutput, error) {
+	current, err := s.client.GetTask(input.TaskID)
+	if err != nil {
+		result := &mcp.CallToolResult{}
+		result.SetError(err)
+		return result, UpdateTaskOutput{}, nil
+	}
+
+	updateTask := api.TaskUpdate{
+		Description: current.Description,
+		DueDate:     current.DueDate,
+		EndDate:     current.EndDate,
+		HexColor:    current.HexColor,
+		PercentDone: current.PercentDone,
+		Priority:    current.Priority,
+		ProjectID:   current.ProjectID,
+		StartDate:   current.StartDate,
+		Title:       current.Title,
+	}
+	done := current.Done
+	updateTask.Done = &done
+	isFavorite := current.IsFavorite
+	updateTask.IsFavorite = &isFavorite
+
+	if input.Title != "" {
+		updateTask.Title = input.Title
+	}
+	if input.Description != "" {
+		updateTask.Description = input.Description
+	}
+	if input.Done != nil {
+		updateTask.Done = input.Done
+	}
+	if input.DueDate != "" {
+		updateTask.DueDate = input.DueDate
+	}
+	if input.EndDate != "" {
+		updateTask.EndDate = input.EndDate
+	}
+	if input.HexColor != "" {
+		updateTask.HexColor = input.HexColor
+	}
+	if input.IsFavorite != nil {
+		updateTask.IsFavorite = input.IsFavorite
+	}
+	if input.PercentDone != 0 {
+		updateTask.PercentDone = input.PercentDone
+	}
+	if input.Priority != 0 {
+		updateTask.Priority = input.Priority
+	}
+	if input.ProjectID != 0 {
+		updateTask.ProjectID = input.ProjectID
+	}
+	if input.StartDate != "" {
+		updateTask.StartDate = input.StartDate
+	}
+	if len(input.Labels) > 0 {
+		labels := make([]api.TaskLabel, len(input.Labels))
+		for i, l := range input.Labels {
+			labels[i] = api.TaskLabel{
+				Description: l.Description,
+				Title:       l.Title,
+			}
+		}
+		updateTask.Labels = labels
+	}
+
+	task, err := s.client.UpdateTask(input.TaskID, updateTask)
+	if err != nil {
+		result := &mcp.CallToolResult{}
+		result.SetError(err)
+		return result, UpdateTaskOutput{}, nil
+	}
+	return nil, UpdateTaskOutput{Task: task}, nil
+}
