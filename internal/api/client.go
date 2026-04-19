@@ -268,6 +268,98 @@ func (c *Client) UpdateTask(taskID int, task TaskUpdate) (Task, error) {
 	return updatedTask, nil
 }
 
+func (c *Client) ListLabels() (Labels, error) {
+	fullURL := c.BaseURL.JoinPath("labels").String()
+	resp, err := c.doRequest("GET", fullURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
+	}
+	var labels Labels
+	if err := json.NewDecoder(resp.Body).Decode(&labels); err != nil {
+		return nil, fmt.Errorf("Error decoding JSON: %v", err)
+	}
+	return labels, nil
+}
+
+func (c *Client) CreateLabel(input LabelInput) (Label, error) {
+	jsonData, err := json.Marshal(input)
+	if err != nil {
+		return Label{}, fmt.Errorf("Error serializing label: %w", err)
+	}
+	fullURL := c.BaseURL.JoinPath("labels").String()
+	resp, err := c.doRequest("PUT", fullURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return Label{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		return Label{}, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
+	}
+	var label Label
+	if err := json.NewDecoder(resp.Body).Decode(&label); err != nil {
+		return Label{}, fmt.Errorf("Error decoding JSON: %v", err)
+	}
+	return label, nil
+}
+
+func (c *Client) DeleteLabel(labelID int) error {
+	fullURL := c.BaseURL.JoinPath("labels", strconv.Itoa(labelID)).String()
+	resp, err := c.doRequest("DELETE", fullURL, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusNotFound {
+			return fmt.Errorf("label with ID %d not found", labelID)
+		}
+		return fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
+	}
+	return nil
+}
+
+func (c *Client) AddLabelToTask(taskID, labelID int) (Label, error) {
+	body := map[string]int{"label_id": labelID}
+	jsonData, err := json.Marshal(body)
+	if err != nil {
+		return Label{}, fmt.Errorf("Error serializing label: %w", err)
+	}
+	fullURL := c.BaseURL.JoinPath("tasks", strconv.Itoa(taskID), "labels").String()
+	resp, err := c.doRequest("PUT", fullURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return Label{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		return Label{}, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
+	}
+	var label Label
+	if err := json.NewDecoder(resp.Body).Decode(&label); err != nil {
+		return Label{}, fmt.Errorf("Error decoding JSON: %v", err)
+	}
+	return label, nil
+}
+
+func (c *Client) RemoveLabelFromTask(taskID, labelID int) error {
+	fullURL := c.BaseURL.JoinPath("tasks", strconv.Itoa(taskID), "labels", strconv.Itoa(labelID)).String()
+	resp, err := c.doRequest("DELETE", fullURL, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusNotFound {
+			return fmt.Errorf("label with ID %d not found on task %d", labelID, taskID)
+		}
+		return fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
+	}
+	return nil
+}
+
 func (c *Client) ListTaskComments(taskID int) (TaskComments, error) {
 	fullURL := c.BaseURL.JoinPath("tasks", strconv.Itoa(taskID), "comments").String()
 	resp, err := c.doRequest("GET", fullURL, nil)

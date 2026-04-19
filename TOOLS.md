@@ -28,11 +28,11 @@ Tools already implemented are marked as done. The rest are pending.
 
 ## Labels
 
-- [ ] `list_labels` — `GET /labels` — List all labels available to the user
-- [ ] `create_label` — `PUT /labels` — Create a new global label
-- [ ] `delete_label` — `DELETE /labels/{id}` — Delete a label
-- [ ] `add_label_to_task` — `PUT /tasks/{id}/labels` — Assign a label to a task
-- [ ] `remove_label_from_task` — `DELETE /tasks/{id}/labels/{label}` — Remove a label from a task
+- [x] `list_labels` — `GET /labels` — List all labels available to the user
+- [x] `create_label` — `PUT /labels` — Create a new global label
+- [x] `delete_label` — `DELETE /labels/{id}` — Delete a label
+- [x] `add_label_to_task` — `PUT /tasks/{id}/labels` — Assign a label to a task
+- [x] `remove_label_from_task` — `DELETE /tasks/{id}/labels/{label}` — Remove a label from a task
 
 ## Kanban
 

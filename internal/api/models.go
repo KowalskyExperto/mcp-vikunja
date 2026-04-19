@@ -205,6 +205,23 @@ type TaskDetail struct {
 	Updated string `json:"updated"`
 }
 
+type Label struct {
+	ID          int    `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	HexColor    string `json:"hex_color"`
+	Created     string `json:"created"`
+	Updated     string `json:"updated"`
+}
+
+type Labels []Label
+
+type LabelInput struct {
+	Title       string `json:"title"`
+	Description string `json:"description,omitempty"`
+	HexColor    string `json:"hex_color,omitempty"`
+}
+
 type TaskComment struct {
 	ID      int    `json:"id"`
 	Comment string `json:"comment"`
