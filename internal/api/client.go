@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -43,6 +44,20 @@ func (c *Client) doRequest(method, url string, body io.Reader) (*http.Response, 
 	if err != nil {
 		return nil, fmt.Errorf("Error executing request: %w", err)
 	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		defer resp.Body.Close()
+		respBody, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("Error API Vikunja: Code %d - Status: %v - Body: %s", resp.StatusCode, resp.Status, string(respBody))
+	}
+
+	// Temporary debug logging
+	/*
+		respBody, _ := io.ReadAll(resp.Body)
+		fmt.Printf("DEBUG: %s %s -> %d: %s\n", method, url, resp.StatusCode, string(respBody))
+		resp.Body = io.NopCloser(bytes.NewBuffer(respBody))
+	*/
+
 	return resp, nil
 }
 
@@ -57,9 +72,6 @@ func (c *Client) CreateProject(project ProjectInput) (Project, error) {
 		return Project{}, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusCreated {
-		return Project{}, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	var created Project
 	if err := json.NewDecoder(resp.Body).Decode(&created); err != nil {
 		return Project{}, fmt.Errorf("Error decoding JSON: %v", err)
@@ -75,15 +87,12 @@ func (c *Client) UpdateProject(projectID int, project ProjectInput) (Project, er
 	fullURL := c.BaseURL.JoinPath("projects", strconv.Itoa(projectID)).String()
 	resp, err := c.doRequest("POST", fullURL, bytes.NewBuffer(jsonData))
 	if err != nil {
+		if strings.Contains(err.Error(), "Code 404") {
+			return Project{}, fmt.Errorf("project with ID %d not found", projectID)
+		}
 		return Project{}, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		if resp.StatusCode == http.StatusNotFound {
-			return Project{}, fmt.Errorf("project with ID %d not found", projectID)
-		}
-		return Project{}, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	var updated Project
 	if err := json.NewDecoder(resp.Body).Decode(&updated); err != nil {
 		return Project{}, fmt.Errorf("Error decoding JSON: %v", err)
@@ -95,15 +104,12 @@ func (c *Client) DeleteProject(projectID int) error {
 	fullURL := c.BaseURL.JoinPath("projects", strconv.Itoa(projectID)).String()
 	resp, err := c.doRequest("DELETE", fullURL, nil)
 	if err != nil {
+		if strings.Contains(err.Error(), "Code 404") {
+			return fmt.Errorf("project with ID %d not found", projectID)
+		}
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		if resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("project with ID %d not found", projectID)
-		}
-		return fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	return nil
 }
 
@@ -111,15 +117,12 @@ func (c *Client) GetProject(projectID int) (Project, error) {
 	fullURL := c.BaseURL.JoinPath("projects", strconv.Itoa(projectID)).String()
 	resp, err := c.doRequest("GET", fullURL, nil)
 	if err != nil {
+		if strings.Contains(err.Error(), "Code 404") {
+			return Project{}, fmt.Errorf("project with ID %d not found", projectID)
+		}
 		return Project{}, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		if resp.StatusCode == http.StatusNotFound {
-			return Project{}, fmt.Errorf("project with ID %d not found", projectID)
-		}
-		return Project{}, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	var project Project
 	if err := json.NewDecoder(resp.Body).Decode(&project); err != nil {
 		return Project{}, fmt.Errorf("Error decoding JSON: %v", err)
@@ -134,9 +137,6 @@ func (c *Client) GetProjects() (Projects, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	var projects Projects
 	if err := json.NewDecoder(resp.Body).Decode(&projects); err != nil {
 		return nil, fmt.Errorf("Error decoding JSON: %v", err)
@@ -151,9 +151,6 @@ func (c *Client) GetTasks() (Tasks, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	var tasks Tasks
 	if err := json.NewDecoder(resp.Body).Decode(&tasks); err != nil {
 		return nil, fmt.Errorf("Error decoding JSON: %v", err)
@@ -168,9 +165,6 @@ func (c *Client) GetTasksByProject(projectID int) (Tasks, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	var tasks Tasks
 	if err := json.NewDecoder(resp.Body).Decode(&tasks); err != nil {
 		return nil, fmt.Errorf("Error decoding JSON: %v", err)
@@ -196,9 +190,12 @@ func (c *Client) SearchTasks(search string) (Tasks, error) {
 		return nil, fmt.Errorf("Error executing request: %w", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("Error API Vikunja: Code %d - Status: %v - Body: %s", resp.StatusCode, resp.Status, string(respBody))
 	}
+
 	var tasks Tasks
 	if err := json.NewDecoder(resp.Body).Decode(&tasks); err != nil {
 		return nil, fmt.Errorf("Error decoding JSON: %v", err)
@@ -217,9 +214,6 @@ func (c *Client) CreateTask(projectID int, task TaskInput) (Task, error) {
 		return Task{}, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusCreated {
-		return Task{}, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	var createdTask Task
 	if err := json.NewDecoder(resp.Body).Decode(&createdTask); err != nil {
 		return Task{}, fmt.Errorf("Error decoding JSON: %v", err)
@@ -231,15 +225,12 @@ func (c *Client) GetTask(taskID int) (TaskDetail, error) {
 	fullURL := c.BaseURL.JoinPath("tasks", strconv.Itoa(taskID)).String()
 	resp, err := c.doRequest("GET", fullURL, nil)
 	if err != nil {
+		if strings.Contains(err.Error(), "Code 404") {
+			return TaskDetail{}, fmt.Errorf("task with ID %d not found", taskID)
+		}
 		return TaskDetail{}, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		if resp.StatusCode == http.StatusNotFound {
-			return TaskDetail{}, fmt.Errorf("task with ID %d not found", taskID)
-		}
-		return TaskDetail{}, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	var task TaskDetail
 	if err := json.NewDecoder(resp.Body).Decode(&task); err != nil {
 		return TaskDetail{}, fmt.Errorf("Error decoding JSON: %v", err)
@@ -258,9 +249,6 @@ func (c *Client) UpdateTask(taskID int, task TaskUpdate) (Task, error) {
 		return Task{}, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return Task{}, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	var updatedTask Task
 	if err := json.NewDecoder(resp.Body).Decode(&updatedTask); err != nil {
 		return Task{}, fmt.Errorf("Error decoding JSON: %v", err)
@@ -272,15 +260,12 @@ func (c *Client) ListProjectViews(projectID int) (ProjectViews, error) {
 	fullURL := c.BaseURL.JoinPath("projects", strconv.Itoa(projectID), "views").String()
 	resp, err := c.doRequest("GET", fullURL, nil)
 	if err != nil {
+		if strings.Contains(err.Error(), "Code 404") {
+			return nil, fmt.Errorf("project with ID %d not found", projectID)
+		}
 		return nil, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		if resp.StatusCode == http.StatusNotFound {
-			return nil, fmt.Errorf("project with ID %d not found", projectID)
-		}
-		return nil, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	var views ProjectViews
 	if err := json.NewDecoder(resp.Body).Decode(&views); err != nil {
 		return nil, fmt.Errorf("Error decoding JSON: %v", err)
@@ -292,15 +277,12 @@ func (c *Client) ListKanbanBuckets(projectID, viewID int) (Buckets, error) {
 	fullURL := c.BaseURL.JoinPath("projects", strconv.Itoa(projectID), "views", strconv.Itoa(viewID), "buckets").String()
 	resp, err := c.doRequest("GET", fullURL, nil)
 	if err != nil {
+		if strings.Contains(err.Error(), "Code 404") {
+			return nil, fmt.Errorf("view with ID %d not found", viewID)
+		}
 		return nil, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		if resp.StatusCode == http.StatusNotFound {
-			return nil, fmt.Errorf("view with ID %d not found", viewID)
-		}
-		return nil, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	var buckets Buckets
 	if err := json.NewDecoder(resp.Body).Decode(&buckets); err != nil {
 		return nil, fmt.Errorf("Error decoding JSON: %v", err)
@@ -322,15 +304,12 @@ func (c *Client) MoveTaskToBucket(projectID, viewID, bucketID, taskID int) error
 	).String()
 	resp, err := c.doRequest("POST", fullURL, bytes.NewBuffer(jsonData))
 	if err != nil {
+		if strings.Contains(err.Error(), "Code 404") {
+			return fmt.Errorf("task with ID %d not found", taskID)
+		}
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		if resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("task with ID %d not found", taskID)
-		}
-		return fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	return nil
 }
 
@@ -341,9 +320,6 @@ func (c *Client) ListLabels() (Labels, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	var labels Labels
 	if err := json.NewDecoder(resp.Body).Decode(&labels); err != nil {
 		return nil, fmt.Errorf("Error decoding JSON: %v", err)
@@ -362,9 +338,6 @@ func (c *Client) CreateLabel(input LabelInput) (Label, error) {
 		return Label{}, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusCreated {
-		return Label{}, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	var label Label
 	if err := json.NewDecoder(resp.Body).Decode(&label); err != nil {
 		return Label{}, fmt.Errorf("Error decoding JSON: %v", err)
@@ -376,15 +349,12 @@ func (c *Client) DeleteLabel(labelID int) error {
 	fullURL := c.BaseURL.JoinPath("labels", strconv.Itoa(labelID)).String()
 	resp, err := c.doRequest("DELETE", fullURL, nil)
 	if err != nil {
+		if strings.Contains(err.Error(), "Code 404") {
+			return fmt.Errorf("label with ID %d not found", labelID)
+		}
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		if resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("label with ID %d not found", labelID)
-		}
-		return fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	return nil
 }
 
@@ -400,9 +370,6 @@ func (c *Client) AddLabelToTask(taskID, labelID int) (Label, error) {
 		return Label{}, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusCreated {
-		return Label{}, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	var label Label
 	if err := json.NewDecoder(resp.Body).Decode(&label); err != nil {
 		return Label{}, fmt.Errorf("Error decoding JSON: %v", err)
@@ -414,15 +381,12 @@ func (c *Client) RemoveLabelFromTask(taskID, labelID int) error {
 	fullURL := c.BaseURL.JoinPath("tasks", strconv.Itoa(taskID), "labels", strconv.Itoa(labelID)).String()
 	resp, err := c.doRequest("DELETE", fullURL, nil)
 	if err != nil {
+		if strings.Contains(err.Error(), "Code 404") {
+			return fmt.Errorf("label with ID %d not found on task %d", labelID, taskID)
+		}
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		if resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("label with ID %d not found on task %d", labelID, taskID)
-		}
-		return fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	return nil
 }
 
@@ -430,15 +394,12 @@ func (c *Client) ListTaskComments(taskID int) (TaskComments, error) {
 	fullURL := c.BaseURL.JoinPath("tasks", strconv.Itoa(taskID), "comments").String()
 	resp, err := c.doRequest("GET", fullURL, nil)
 	if err != nil {
+		if strings.Contains(err.Error(), "Code 404") {
+			return nil, fmt.Errorf("task with ID %d not found", taskID)
+		}
 		return nil, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		if resp.StatusCode == http.StatusNotFound {
-			return nil, fmt.Errorf("task with ID %d not found", taskID)
-		}
-		return nil, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	var comments TaskComments
 	if err := json.NewDecoder(resp.Body).Decode(&comments); err != nil {
 		return nil, fmt.Errorf("Error decoding JSON: %v", err)
@@ -457,9 +418,6 @@ func (c *Client) CreateTaskComment(taskID int, input TaskCommentInput) (TaskComm
 		return TaskComment{}, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusCreated {
-		return TaskComment{}, fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	var comment TaskComment
 	if err := json.NewDecoder(resp.Body).Decode(&comment); err != nil {
 		return TaskComment{}, fmt.Errorf("Error decoding JSON: %v", err)
@@ -471,15 +429,12 @@ func (c *Client) DeleteTaskComment(taskID, commentID int) error {
 	fullURL := c.BaseURL.JoinPath("tasks", strconv.Itoa(taskID), "comments", strconv.Itoa(commentID)).String()
 	resp, err := c.doRequest("DELETE", fullURL, nil)
 	if err != nil {
+		if strings.Contains(err.Error(), "Code 404") {
+			return fmt.Errorf("comment with ID %d not found", commentID)
+		}
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		if resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("comment with ID %d not found", commentID)
-		}
-		return fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	return nil
 }
 
@@ -494,9 +449,6 @@ func (c *Client) CreateTaskRelation(taskID int, input TaskRelationInput) error {
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	return nil
 }
 
@@ -509,15 +461,12 @@ func (c *Client) DeleteTaskRelation(taskID int, relationKind string, otherTaskID
 	}
 	resp, err := c.doRequest("DELETE", fullURL, bytes.NewBuffer(jsonData))
 	if err != nil {
+		if strings.Contains(err.Error(), "Code 404") {
+			return fmt.Errorf("relation not found between tasks %d and %d", taskID, otherTaskID)
+		}
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		if resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("relation not found between tasks %d and %d", taskID, otherTaskID)
-		}
-		return fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	return nil
 }
 
@@ -525,14 +474,12 @@ func (c *Client) DeleteTask(taskID int) error {
 	fullURL := c.BaseURL.JoinPath("tasks", strconv.Itoa(taskID)).String()
 	resp, err := c.doRequest("DELETE", fullURL, nil)
 	if err != nil {
+		if strings.Contains(err.Error(), "Code 404") {
+			return fmt.Errorf("task with ID %d not found", taskID)
+		}
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		if resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("task with ID %d not found", taskID)
-		}
-		return fmt.Errorf("Error API Vikunja: Code %d - Status: %v", resp.StatusCode, resp.Status)
-	}
 	return nil
 }
+
