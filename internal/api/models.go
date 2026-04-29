@@ -228,6 +228,12 @@ type Bucket struct {
 
 type Buckets []Bucket
 
+type BucketInput struct {
+	Title    string  `json:"title"`
+	Limit    int     `json:"limit,omitempty"`
+	Position float64 `json:"position,omitempty"`
+}
+
 type Label struct {
 	ID          int    `json:"id"`
 	Title       string `json:"title"`

@@ -283,6 +283,52 @@ func (c *Client) ListKanbanBuckets(projectID, viewID int) (Buckets, error) {
 	return buckets, nil
 }
 
+func (c *Client) CreateKanbanBucket(projectID, viewID int, bucket BucketInput) (Bucket, error) {
+	jsonData, err := json.Marshal(bucket)
+	if err != nil {
+		return Bucket{}, fmt.Errorf("Error serializing bucket: %w", err)
+	}
+	fullURL := c.BaseURL.JoinPath("projects", strconv.Itoa(projectID), "views", strconv.Itoa(viewID), "buckets").String()
+	resp, err := c.doRequest("PUT", fullURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return Bucket{}, err
+	}
+	defer resp.Body.Close()
+	var created Bucket
+	if err := json.NewDecoder(resp.Body).Decode(&created); err != nil {
+		return Bucket{}, fmt.Errorf("Error decoding JSON: %v", err)
+	}
+	return created, nil
+}
+
+func (c *Client) UpdateKanbanBucket(projectID, viewID, bucketID int, bucket BucketInput) (Bucket, error) {
+	jsonData, err := json.Marshal(bucket)
+	if err != nil {
+		return Bucket{}, fmt.Errorf("Error serializing bucket: %w", err)
+	}
+	fullURL := c.BaseURL.JoinPath("projects", strconv.Itoa(projectID), "views", strconv.Itoa(viewID), "buckets", strconv.Itoa(bucketID)).String()
+	resp, err := c.doRequest("POST", fullURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return Bucket{}, err
+	}
+	defer resp.Body.Close()
+	var updated Bucket
+	if err := json.NewDecoder(resp.Body).Decode(&updated); err != nil {
+		return Bucket{}, fmt.Errorf("Error decoding JSON: %v", err)
+	}
+	return updated, nil
+}
+
+func (c *Client) DeleteKanbanBucket(projectID, viewID, bucketID int) error {
+	fullURL := c.BaseURL.JoinPath("projects", strconv.Itoa(projectID), "views", strconv.Itoa(viewID), "buckets", strconv.Itoa(bucketID)).String()
+	resp, err := c.doRequest("DELETE", fullURL, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return nil
+}
+
 func (c *Client) MoveTaskToBucket(projectID, viewID, bucketID, taskID int) error {
 	body := map[string]int{"task_id": taskID}
 	jsonData, err := json.Marshal(body)
