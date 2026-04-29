@@ -58,7 +58,9 @@ npx @modelcontextprotocol/inspector go run .
 | Tool | Description |
 |------|-------------|
 | `list_labels` | List all available labels |
+| `get_label` | Get a label by ID |
 | `create_label` | Create a new label |
+| `update_label` | Update an existing label by ID |
 | `delete_label` | Delete a label by ID |
 | `add_label_to_task` | Add a label to a task |
 | `remove_label_from_task` | Remove a label from a task |
@@ -69,9 +71,14 @@ npx @modelcontextprotocol/inspector go run .
 |------|-------------|
 | `list_project_views` | List all views of a project (list, kanban, gantt, etc.) |
 | `list_kanban_buckets` | List all columns of a kanban view |
+| `create_kanban_bucket` | Create a new kanban bucket on a project view |
+| `update_kanban_bucket` | Update an existing kanban bucket |
+| `delete_kanban_bucket` | Delete an existing kanban bucket |
 | `move_task_to_bucket` | Move a task to a different kanban column |
 
-To move a task between kanban columns: `list_project_views` → `list_kanban_buckets` → `move_task_to_bucket`.
+
+To manage kanban columns: `list_project_views` → `list_kanban_buckets` → `create_kanban_bucket` / `update_kanban_bucket` / `delete_kanban_bucket`.
+To move a task between columns: `list_project_views` → `list_kanban_buckets` → `move_task_to_bucket`.
 
 ### Task Relations
 
@@ -81,3 +88,9 @@ To move a task between kanban columns: `list_project_views` → `list_kanban_buc
 | `delete_task_relation` | Remove a relation between two tasks |
 
 Available relation kinds: `subtask`, `parenttask`, `related`, `duplicateof`, `duplicates`, `blocking`, `blocked`, `precedes`, `follows`.
+
+## Features & Improvements
+
+- **Rich Error Reporting:** The server captures and returns detailed error messages from the Vikunja API, including validation failures, to simplify debugging.
+- **Full Resource Management:** Support for complete CRUD operations on Projects, Tasks, Labels, and Kanban Buckets.
+- **Smart Updates:** `update_task` and `update_project` support a `clear_fields` parameter to explicitly reset optional fields to empty values.
