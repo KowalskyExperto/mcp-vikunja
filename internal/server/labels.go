@@ -23,6 +23,24 @@ func (s *VikunjaServer) ListLabels(ctx context.Context, req *mcp.CallToolRequest
 	return nil, ListLabelsOutput{Labels: labels}, nil
 }
 
+type GetLabelInput struct {
+	LabelID int `json:"label_id" jsonschema:"ID of the label to get"`
+}
+
+type GetLabelOutput struct {
+	Label api.Label `json:"label"`
+}
+
+func (s *VikunjaServer) GetLabel(ctx context.Context, req *mcp.CallToolRequest, input GetLabelInput) (*mcp.CallToolResult, GetLabelOutput, error) {
+	label, err := s.client.GetLabel(input.LabelID)
+	if err != nil {
+		result := &mcp.CallToolResult{}
+		result.SetError(err)
+		return result, GetLabelOutput{}, nil
+	}
+	return nil, GetLabelOutput{Label: label}, nil
+}
+
 type CreateLabelInput struct {
 	Title       string `json:"title" jsonschema:"The title of the label"`
 	Description string `json:"description,omitempty" jsonschema:"Label description"`
@@ -45,6 +63,50 @@ func (s *VikunjaServer) CreateLabel(ctx context.Context, req *mcp.CallToolReques
 		return result, CreateLabelOutput{}, nil
 	}
 	return nil, CreateLabelOutput{Label: label}, nil
+}
+
+type UpdateLabelInput struct {
+	LabelID     int    `json:"label_id" jsonschema:"ID of the label to update"`
+	Title       string `json:"title,omitempty" jsonschema:"New title for the label"`
+	Description string `json:"description,omitempty" jsonschema:"New description for the label"`
+	HexColor    string `json:"hex_color,omitempty" jsonschema:"New color for the label"`
+}
+
+type UpdateLabelOutput struct {
+	Label api.Label `json:"label"`
+}
+
+func (s *VikunjaServer) UpdateLabel(ctx context.Context, req *mcp.CallToolRequest, input UpdateLabelInput) (*mcp.CallToolResult, UpdateLabelOutput, error) {
+	current, err := s.client.GetLabel(input.LabelID)
+	if err != nil {
+		result := &mcp.CallToolResult{}
+		result.SetError(err)
+		return result, UpdateLabelOutput{}, nil
+	}
+
+	updated := api.LabelInput{
+		Title:       current.Title,
+		Description: current.Description,
+		HexColor:    current.HexColor,
+	}
+
+	if input.Title != "" {
+		updated.Title = input.Title
+	}
+	if input.Description != "" {
+		updated.Description = input.Description
+	}
+	if input.HexColor != "" {
+		updated.HexColor = input.HexColor
+	}
+
+	label, err := s.client.UpdateLabel(input.LabelID, updated)
+	if err != nil {
+		result := &mcp.CallToolResult{}
+		result.SetError(err)
+		return result, UpdateLabelOutput{}, nil
+	}
+	return nil, UpdateLabelOutput{Label: label}, nil
 }
 
 type DeleteLabelInput struct {

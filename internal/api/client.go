@@ -51,13 +51,6 @@ func (c *Client) doRequest(method, url string, body io.Reader) (*http.Response, 
 		return nil, fmt.Errorf("Error API Vikunja: Code %d - Status: %v - Body: %s", resp.StatusCode, resp.Status, string(respBody))
 	}
 
-	// Temporary debug logging
-	/*
-		respBody, _ := io.ReadAll(resp.Body)
-		fmt.Printf("DEBUG: %s %s -> %d: %s\n", method, url, resp.StatusCode, string(respBody))
-		resp.Body = io.NopCloser(bytes.NewBuffer(respBody))
-	*/
-
 	return resp, nil
 }
 
@@ -334,6 +327,41 @@ func (c *Client) CreateLabel(input LabelInput) (Label, error) {
 	}
 	fullURL := c.BaseURL.JoinPath("labels").String()
 	resp, err := c.doRequest("PUT", fullURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return Label{}, err
+	}
+	defer resp.Body.Close()
+	var label Label
+	if err := json.NewDecoder(resp.Body).Decode(&label); err != nil {
+		return Label{}, fmt.Errorf("Error decoding JSON: %v", err)
+	}
+	return label, nil
+}
+
+func (c *Client) GetLabel(labelID int) (Label, error) {
+	fullURL := c.BaseURL.JoinPath("labels", strconv.Itoa(labelID)).String()
+	resp, err := c.doRequest("GET", fullURL, nil)
+	if err != nil {
+		if strings.Contains(err.Error(), "Code 404") {
+			return Label{}, fmt.Errorf("label with ID %d not found", labelID)
+		}
+		return Label{}, err
+	}
+	defer resp.Body.Close()
+	var label Label
+	if err := json.NewDecoder(resp.Body).Decode(&label); err != nil {
+		return Label{}, fmt.Errorf("Error decoding JSON: %v", err)
+	}
+	return label, nil
+}
+
+func (c *Client) UpdateLabel(labelID int, input LabelInput) (Label, error) {
+	jsonData, err := json.Marshal(input)
+	if err != nil {
+		return Label{}, fmt.Errorf("Error serializing label: %w", err)
+	}
+	fullURL := c.BaseURL.JoinPath("labels", strconv.Itoa(labelID)).String()
+	resp, err := c.doRequest("POST", fullURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return Label{}, err
 	}
