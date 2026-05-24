@@ -8,7 +8,7 @@ import (
 )
 
 type ListTasksByProjectInput struct {
-	ProjectID int `json:"project_id" jsonschema:"ID Project of Vikunja"`
+	ProjectID int `json:"project_id" jsonschema:"The unique ID of the Vikunja project to list tasks from"`
 }
 
 type ListTasksByProjectOutput struct {
@@ -42,11 +42,11 @@ func (s *VikunjaServer) ListProjects(ctx context.Context, req *mcp.CallToolReque
 }
 
 type CreateProjectInput struct {
-	Title           string `json:"title" jsonschema:"The title of the project"`
-	Description     string `json:"description,omitempty" jsonschema:"Project description"`
-	HexColor        string `json:"hex_color,omitempty" jsonschema:"Project color in hex format, e.g. #ff0000"`
-	IsFavorite      bool   `json:"is_favorite,omitempty" jsonschema:"Mark this project as a favorite"`
-	ParentProjectID *int   `json:"parent_project_id,omitempty" jsonschema:"ID of the parent project to nest this project under"`
+	Title           string `json:"title" jsonschema:"The title or name of the new project"`
+	Description     string `json:"description,omitempty" jsonschema:"A detailed description of the project"`
+	HexColor        string `json:"hex_color,omitempty" jsonschema:"The project color in hexadecimal format (e.g., '#ff0000')"`
+	IsFavorite      bool   `json:"is_favorite,omitempty" jsonschema:"Whether to mark this project as a favorite for quick access"`
+	ParentProjectID *int   `json:"parent_project_id,omitempty" jsonschema:"The ID of a parent project to nest this project under, creating a subproject"`
 }
 
 type CreateProjectOutput struct {
@@ -71,13 +71,13 @@ func (s *VikunjaServer) CreateProject(ctx context.Context, req *mcp.CallToolRequ
 }
 
 type UpdateProjectInput struct {
-	ProjectID       int      `json:"project_id" jsonschema:"ID of the project to update"`
-	ClearFields     []string `json:"clear_fields,omitempty" jsonschema:"List of field names to clear. Supported: description"`
-	Title           string   `json:"title,omitempty" jsonschema:"New title for the project"`
-	Description     string   `json:"description,omitempty" jsonschema:"New description for the project"`
-	HexColor        string   `json:"hex_color,omitempty" jsonschema:"Project color in hex format, e.g. #ff0000"`
-	IsFavorite      bool     `json:"is_favorite,omitempty" jsonschema:"Mark this project as a favorite"`
-	ParentProjectID *int     `json:"parent_project_id,omitempty" jsonschema:"Set the parent project ID, or 0 to remove the parent"`
+	ProjectID       int      `json:"project_id" jsonschema:"The unique ID of the Vikunja project to update"`
+	ClearFields     []string `json:"clear_fields,omitempty" jsonschema:"List of optional fields to clear/reset. Supported: description"`
+	Title           string   `json:"title,omitempty" jsonschema:"The new title or name for the project"`
+	Description     string   `json:"description,omitempty" jsonschema:"The new detailed description for the project"`
+	HexColor        string   `json:"hex_color,omitempty" jsonschema:"The new project color in hexadecimal format (e.g., '#ff0000')"`
+	IsFavorite      bool     `json:"is_favorite,omitempty" jsonschema:"Whether to mark this project as a favorite"`
+	ParentProjectID *int     `json:"parent_project_id,omitempty" jsonschema:"The new parent project ID to nest this project under, or 0 to remove it from any parent"`
 }
 
 type UpdateProjectOutput struct {
@@ -133,7 +133,7 @@ func (s *VikunjaServer) UpdateProject(ctx context.Context, req *mcp.CallToolRequ
 }
 
 type DeleteProjectInput struct {
-	ProjectID int `json:"project_id" jsonschema:"ID of the project to delete"`
+	ProjectID int `json:"project_id" jsonschema:"The unique ID of the Vikunja project to delete"`
 }
 
 type DeleteProjectOutput struct {

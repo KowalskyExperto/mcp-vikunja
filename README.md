@@ -1,27 +1,133 @@
 # mcp-vikunja
 
-An MCP server that connects Claude to a self-hosted [Vikunja](https://vikunja.io) instance, allowing you to manage projects and tasks directly from Claude or Claude Code.
+An MCP (Model Context Protocol) server that connects Claude and other MCP clients to a self-hosted [Vikunja](https://vikunja.io) instance. This allows AI assistants like Claude Desktop, Cursor, or Claude Code to manage your projects, tasks, labels, comments, and Kanban boards directly through natural language.
 
-## Setup
+---
 
-1. Copy `.env.example` to `.env` and fill in your values:
+## Features
 
-```env
-API_URL=https://your-vikunja-instance.com/api/v1/
-API_TOKEN=your_api_token_here
+- **Full Project Management:** Create, list, update, and delete projects, with support for parent-child project nesting.
+- **Robust Task CRUD:** Search, create, read, update, and delete tasks. Schedulable properties like due dates, priorities, and description fields are fully supported.
+- **Smart Updates:** Explicitly reset optional fields (like `description`, `due_date`, etc.) to empty values using the special `clear_fields` argument.
+- **Kanban Support:** Manage Kanban columns (buckets) within project views and easily move tasks between columns.
+- **Labels & Tags:** Categorize tasks by creating, deleting, and attaching/removing labels.
+- **Task Relations:** Define dependencies between tasks (e.g., subtask, parenttask, blocking, blocked, related, duplicates, etc.).
+- **Comments Management:** Retrieve, add, and delete comments on individual tasks.
+- **Rich Error Reporting:** Detailed error messages from the Vikunja API (including payload validation issues) are piped back to the LLM to make debugging and error recovery seamless.
+- **Embedded API Reference:** The official Swagger 2.0 Vikunja API specification is included locally in [docs/swagger.json](file:///mnt/kanji/Development/Projects/mcp-vikunja/docs/swagger.json), serving as an offline reference for developers and a rich context source for AI agents.
+
+---
+
+## Requirements
+
+Before setting up `mcp-vikunja`, ensure you have the following installed:
+
+1. **Go (Golang):** Version **1.26** or higher. You can verify your version with:
+   ```bash
+   go version
+   ```
+2. **Vikunja Instance:** A running self-hosted Vikunja instance (API version 1).
+3. **Vikunja API Token:** A Personal API Token generated from your Vikunja user settings.
+   - Go to your Vikunja web interface.
+   - Click on your avatar / **Settings** -> **API Tokens**.
+   - Create a new token with appropriate read/write scopes for **Projects**, **Tasks**, **Labels**, etc.
+4. **Node.js (Optional):** Required only if you want to use the MCP Inspector for interactive testing.
+
+---
+
+## Installation
+
+### 1. Clone the Repository
+Clone the repository to your local machine and navigate into the project directory:
+```bash
+git clone https://github.com/kowalskyexperto/mcp-vikunja.git
+cd mcp-vikunja
 ```
 
-2. Run the server:
+### 2. Build the Server
+Build the production-ready binary using Go:
+```bash
+go build -o mcp-vikunja .
+```
+This compiles the code into an executable called `mcp-vikunja` in the root of the project.
 
+---
+
+## Configuration
+
+The server expects two environment variables for its configuration:
+
+- `API_URL`: The URL of your self-hosted Vikunja API v1 endpoint (must end with a trailing slash, e.g., `https://your-vikunja-instance.com/api/v1/`).
+- `API_TOKEN`: Your personal Vikunja API token (generated in your user settings).
+
+> [!NOTE]
+> Since this is a Model Context Protocol server, you do not need to create or maintain a `.env` file. The environment variables are injected directly by your MCP client (such as Claude Desktop or Cursor) during server startup.
+
+---
+
+## MCP Integration Setup
+
+To use this server with your favorite AI assistant, configure it to launch the compiled binary or run the project through Go.
+
+### Claude Desktop
+Add the following server configuration to your `claude_desktop_config.json`:
+
+* **On Linux:** `~/.config/Claude/claude_desktop_config.json`
+* **On macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+* **On Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+
+#### Option A: Running the precompiled binary (Recommended)
+```json
+{
+  "mcpServers": {
+    "vikunja": {
+      "command": "/absolute/path/to/mcp-vikunja/mcp-vikunja",
+      "env": {
+        "API_URL": "https://your-vikunja-instance.com/api/v1/",
+        "API_TOKEN": "your_personal_api_token_here"
+      }
+    }
+  }
+}
+```
+
+#### Option B: Running via Go source code
+```json
+{
+  "mcpServers": {
+    "vikunja": {
+      "command": "go",
+      "args": [
+        "run",
+        "/absolute/path/to/mcp-vikunja/main.go"
+      ],
+      "env": {
+        "API_URL": "https://your-vikunja-instance.com/api/v1/",
+        "API_TOKEN": "your_personal_api_token_here"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Development and Testing
+
+### Run the Server Locally
+To start the server locally in stdio mode:
 ```bash
 go run .
 ```
 
-3. To test with the MCP Inspector:
-
+### Test with MCP Inspector
+You can test the available tools and view JSON schemas interactively using the official Model Context Protocol Inspector:
 ```bash
 npx @modelcontextprotocol/inspector go run .
 ```
+This command spins up a web-based testing utility where you can send tool requests and inspect raw JSON payloads.
+
+---
 
 ## Available Tools
 
@@ -42,7 +148,7 @@ npx @modelcontextprotocol/inspector go run .
 | `search_tasks` | Search tasks by name |
 | `create_task` | Create a task in a project |
 | `get_task` | Get full task details by ID |
-| `update_task` | Update a task by ID. Use `clear_fields` to clear optional fields (e.g. `["description", "due_date"]`) |
+| `update_task` | Update a task by ID. Use `clear_fields` to clear optional fields (e.g. `["description", "due_date", "start_date", "end_date", "hex_color"]`) |
 | `delete_task` | Delete a task by ID |
 
 ### Comments
@@ -76,9 +182,8 @@ npx @modelcontextprotocol/inspector go run .
 | `delete_kanban_bucket` | Delete an existing kanban bucket |
 | `move_task_to_bucket` | Move a task to a different kanban column |
 
-
-To manage kanban columns: `list_project_views` → `list_kanban_buckets` → `create_kanban_bucket` / `update_kanban_bucket` / `delete_kanban_bucket`.
-To move a task between columns: `list_project_views` → `list_kanban_buckets` → `move_task_to_bucket`.
+* **Workflow to manage Kanban columns:** `list_project_views` &rarr; `list_kanban_buckets` &rarr; `create_kanban_bucket` / `update_kanban_bucket` / `delete_kanban_bucket`.
+* **Workflow to move a task:** `list_project_views` &rarr; `list_kanban_buckets` &rarr; `move_task_to_bucket`.
 
 ### Task Relations
 
@@ -87,10 +192,5 @@ To move a task between columns: `list_project_views` → `list_kanban_buckets` �
 | `create_task_relation` | Create a relation between two tasks |
 | `delete_task_relation` | Remove a relation between two tasks |
 
-Available relation kinds: `subtask`, `parenttask`, `related`, `duplicateof`, `duplicates`, `blocking`, `blocked`, `precedes`, `follows`.
+* **Supported relation kinds:** `subtask`, `parenttask`, `related`, `duplicateof`, `duplicates`, `blocking`, `blocked`, `precedes`, `follows`.
 
-## Features & Improvements
-
-- **Rich Error Reporting:** The server captures and returns detailed error messages from the Vikunja API, including validation failures, to simplify debugging.
-- **Full Resource Management:** Support for complete CRUD operations on Projects, Tasks, Labels, and Kanban Buckets.
-- **Smart Updates:** `update_task` and `update_project` support a `clear_fields` parameter to explicitly reset optional fields to empty values.

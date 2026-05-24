@@ -8,7 +8,7 @@ import (
 )
 
 type ListTasksBySearchInput struct {
-	Search string `json:"search" jsonschema:"Task name to search of Vikunja"`
+	Search string `json:"search" jsonschema:"The text query to search tasks by name/title"`
 }
 type ListTasksBySearchOutput struct {
 	Tasks api.Tasks `json:"tasks"`
@@ -25,11 +25,11 @@ func (s *VikunjaServer) ListTasksBySearch(ctx context.Context, req *mcp.CallTool
 }
 
 type CreateTaskInput struct {
-	ProjectID   int    `json:"project_id" jsonschema:"ID Project of Vikunja"`
-	Description string `json:"description,omitempty" jsonschema:"Task description"`
-	DueDate     string `json:"due_date,omitempty" jsonschema:"Task due date in format ISO 8601 YYYY-MM-DDTHH:MM:SSZ"`
-	Priority    int    `json:"priority,omitempty" jsonschema:"The task priority, 1 for low, 5 for critic"`
-	Title       string `json:"title" jsonschema:"The title of the task"`
+	ProjectID   int    `json:"project_id" jsonschema:"The unique ID of the Vikunja project to create the task in"`
+	Description string `json:"description,omitempty" jsonschema:"A detailed description of the task"`
+	DueDate     string `json:"due_date,omitempty" jsonschema:"The task due date in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ)"`
+	Priority    int    `json:"priority,omitempty" jsonschema:"The task priority level (1 for low, 2 for medium, 3 for high, 4 for urgent, 5 for critical)"`
+	Title       string `json:"title" jsonschema:"The title or summary of the task"`
 }
 type CreateTaskOutput struct {
 	Task api.Task `json:"task"`
@@ -52,7 +52,7 @@ func (s *VikunjaServer) CreateTask(ctx context.Context, req *mcp.CallToolRequest
 }
 
 type GetTaskInput struct {
-	TaskID int `json:"task_id" jsonschema:"ID Task to get"`
+	TaskID int `json:"task_id" jsonschema:"The unique ID of the Vikunja task to retrieve"`
 }
 
 type GetTaskOutput struct {
@@ -70,21 +70,21 @@ func (s *VikunjaServer) GetTask(ctx context.Context, req *mcp.CallToolRequest, i
 }
 
 type UpdateTaskInput struct {
-	TaskID int `json:"id" jsonschema:"ID Task to update"`
+	TaskID int `json:"id" jsonschema:"The unique ID of the Vikunja task to update"`
 
-	ClearFields []string        `json:"clear_fields,omitempty" jsonschema:"List of field names to clear. Supported: description, due_date, start_date, end_date, hex_color"`
-	Description string          `json:"description,omitempty" jsonschema:"Task description"`
-	Done        *bool           `json:"done,omitempty" jsonschema:"Whether a task is done or not"`
-	DueDate     string          `json:"due_date,omitempty" jsonschema:"When this task is due in format ISO 8601 YYYY-MM-DDTHH:MM:SSZ"`
-	EndDate     string          `json:"end_date,omitempty" jsonschema:"When this task ends"`
-	HexColor    string          `json:"hex_color,omitempty" jsonschema:"The task color in hex <= 7 characters"`
-	IsFavorite  *bool           `json:"is_favorite,omitempty" jsonschema:"True if a task is a favorite task"`
-	Labels      []api.TaskLabel `json:"labels,omitempty" jsonschema:"Labels associated with this task, each with a title and optional description"`
-	PercentDone *float64        `json:"percent_done,omitempty" jsonschema:"How far the task is from being done, from 0.0 (0%) to 1.0 (100%)"`
-	Priority    *int            `json:"priority,omitempty" jsonschema:"The task priority, 0 for none, 1 for low, 5 for critic"`
-	ProjectID   int             `json:"project_id,omitempty" jsonschema:"The project this task belongs to"`
-	StartDate   string          `json:"start_date,omitempty" jsonschema:"When this task starts"`
-	Title       string          `json:"title,omitempty" jsonschema:"The title of the task"`
+	ClearFields []string        `json:"clear_fields,omitempty" jsonschema:"List of optional fields to clear/reset. Supported: description, due_date, start_date, end_date, hex_color"`
+	Description string          `json:"description,omitempty" jsonschema:"The new detailed description for the task"`
+	Done        *bool           `json:"done,omitempty" jsonschema:"Whether the task is marked as completed/done"`
+	DueDate     string          `json:"due_date,omitempty" jsonschema:"The new due date for the task in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ)"`
+	EndDate     string          `json:"end_date,omitempty" jsonschema:"The new end date for the task in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ)"`
+	HexColor    string          `json:"hex_color,omitempty" jsonschema:"The task color in hexadecimal format (e.g. '#ff0000', max 7 characters)"`
+	IsFavorite  *bool           `json:"is_favorite,omitempty" jsonschema:"Whether the task is marked as a favorite"`
+	Labels      []api.TaskLabel `json:"labels,omitempty" jsonschema:"New labels to associate with this task, each with a title and optional description"`
+	PercentDone *float64        `json:"percent_done,omitempty" jsonschema:"Completion percentage of the task, from 0.0 (0%) to 1.0 (100%)"`
+	Priority    *int            `json:"priority,omitempty" jsonschema:"The new task priority level (0 for none, 1 for low, 2 for medium, 3 for high, 4 for urgent, 5 for critical)"`
+	ProjectID   int             `json:"project_id,omitempty" jsonschema:"The ID of the project this task should belong to (useful to move the task to a different project)"`
+	StartDate   string          `json:"start_date,omitempty" jsonschema:"The new start date for the task in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ)"`
+	Title       string          `json:"title,omitempty" jsonschema:"The new title or summary for the task"`
 }
 
 type UpdateTaskOutput struct {
@@ -186,7 +186,7 @@ func (s *VikunjaServer) UpdateTask(ctx context.Context, req *mcp.CallToolRequest
 }
 
 type DeleteTaskInput struct {
-	TaskID int `json:"task_id" jsonschema:"ID of the task to delete"`
+	TaskID int `json:"task_id" jsonschema:"The unique ID of the Vikunja task to delete"`
 }
 
 type DeleteTaskOutput struct {
